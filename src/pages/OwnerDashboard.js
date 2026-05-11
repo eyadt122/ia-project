@@ -5,7 +5,8 @@ import NotificationBell from "../components/NotificationBell";
 const EMPTY_FORM = {
   title: "", genre: "", price: "", isbn: "",
   language: "English", availabilityStart: "",
-  availabilityEnd: "", coverImageUrl: ""
+  availabilityEnd: "", coverImageUrl: "",
+  publicationDate: ""
 };
 
 export default function OwnerDashboard({ navigate, onLogout }) {
@@ -43,7 +44,8 @@ export default function OwnerDashboard({ navigate, onLogout }) {
   };
 
   const openCreate = () => { setEditBook(null); setForm(EMPTY_FORM); setShowModal(true); };
-  const openEdit   = (b) => {
+
+  const openEdit = (b) => {
     setEditBook(b);
     setForm({
       title:             b.title,
@@ -54,6 +56,7 @@ export default function OwnerDashboard({ navigate, onLogout }) {
       availabilityStart: b.availabilityStart || "",
       availabilityEnd:   b.availabilityEnd   || "",
       coverImageUrl:     b.coverImageUrl     || "",
+      publicationDate:   b.publicationDate   || "",
     });
     setShowModal(true);
   };
@@ -67,6 +70,7 @@ export default function OwnerDashboard({ navigate, onLogout }) {
         isbn:              form.isbn,
         language:          form.language,
         borrowPrice:       parseFloat(form.price),
+        publicationDate:   form.publicationDate   || null,
         availabilityStart: form.availabilityStart || null,
         availabilityEnd:   form.availabilityEnd   || null,
         coverImageUrl:     form.coverImageUrl     || null,
@@ -106,10 +110,10 @@ export default function OwnerDashboard({ navigate, onLogout }) {
   };
 
   const stats = [
-    { label: "My Books",     value: books.length,                                        icon: "📚", color: "var(--accent)" },
+    { label: "My Books",     value: books.length,                                        icon: "📚", color: "var(--accent)"  },
     { label: "Borrowed Now", value: books.filter(b => b.status === "Borrowed").length,   icon: "🔄", color: "var(--yellow)" },
-    { label: "Available",    value: books.filter(b => b.status === "Available").length,  icon: "✅", color: "var(--green)" },
-    { label: "Pending Req.", value: requests.filter(r => r.status === "Pending").length, icon: "📩", color: "#6366f1" },
+    { label: "Available",    value: books.filter(b => b.status === "Available").length,  icon: "✅", color: "var(--green)"  },
+    { label: "Pending Req.", value: requests.filter(r => r.status === "Pending").length, icon: "📩", color: "#6366f1"       },
   ];
 
   return (
@@ -121,9 +125,9 @@ export default function OwnerDashboard({ navigate, onLogout }) {
         </div>
         <div className="navbar-actions">
           <NotificationBell user={user} />
-          <button className="btn btn-ghost btn-sm" onClick={() => navigate("home")}>Browse</button>
-          <button className="btn btn-primary btn-sm" onClick={openCreate}>+ Add Book</button>
-          <button className="btn btn-outline btn-sm" onClick={onLogout}>Sign Out</button>
+          <button className="btn btn-ghost btn-sm"    onClick={() => navigate("home")}>Browse</button>
+          <button className="btn btn-primary btn-sm"  onClick={openCreate}>+ Add Book</button>
+          <button className="btn btn-outline btn-sm"  onClick={onLogout}>Sign Out</button>
         </div>
       </nav>
 
@@ -149,8 +153,8 @@ export default function OwnerDashboard({ navigate, onLogout }) {
         {/* Tabs */}
         <div style={{ display: "flex", gap: 2, marginBottom: 20, background: "var(--bg2)", borderRadius: 8, padding: 4, width: "fit-content" }}>
           {[
-            { key: "books",    label: `📚 My Books (${books.length})` },
-            { key: "requests", label: `📩 Requests (${requests.length})` }
+            { key: "books",    label: `📚 My Books (${books.length})`    },
+            { key: "requests", label: `📩 Requests (${requests.length})` },
           ].map(t => (
             <button key={t.key} onClick={() => setActiveTab(t.key)} className="btn" style={{
               borderRadius: 6, fontSize: 13, fontWeight: 600, padding: "8px 18px",
@@ -205,16 +209,8 @@ export default function OwnerDashboard({ navigate, onLogout }) {
                             <td><strong>{b.title}</strong></td>
                             <td><span className="badge badge-gray">{b.genre}</span></td>
                             <td style={{ color: "var(--accent)", fontWeight: 600 }}>{b.borrowPrice} EGP</td>
-                            <td>
-                              <span className={`badge ${b.status === "Borrowed" ? "badge-yellow" : "badge-green"}`}>
-                                {b.status}
-                              </span>
-                            </td>
-                            <td>
-                              <span className={`badge ${b.isApproved ? "badge-green" : "badge-gray"}`}>
-                                {b.isApproved ? "Yes" : "Pending"}
-                              </span>
-                            </td>
+                            <td><span className={`badge ${b.status === "Borrowed" ? "badge-yellow" : "badge-green"}`}>{b.status}</span></td>
+                            <td><span className={`badge ${b.isApproved ? "badge-green" : "badge-gray"}`}>{b.isApproved ? "Yes" : "Pending"}</span></td>
                             <td>
                               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                                 <button className="btn btn-outline btn-sm" onClick={() => openEdit(b)}>✏️ Edit</button>
@@ -264,7 +260,7 @@ export default function OwnerDashboard({ navigate, onLogout }) {
                             <td>
                               <span className={`badge ${
                                 r.status === "Accepted" ? "badge-green" :
-                                r.status === "Rejected" ? "badge-red"  : "badge-yellow"
+                                r.status === "Rejected" ? "badge-red"   : "badge-yellow"
                               }`}>
                                 {r.status}
                               </span>
@@ -291,7 +287,7 @@ export default function OwnerDashboard({ navigate, onLogout }) {
         )}
       </div>
 
-      {/* Add / Edit Modal */}
+      {/* Modal */}
       {showModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
           <div className="card" style={{ width: "100%", maxWidth: 500, padding: 28, maxHeight: "90vh", overflowY: "auto" }}>
@@ -312,6 +308,7 @@ export default function OwnerDashboard({ navigate, onLogout }) {
                 ["genre",             "Genre"],
                 ["isbn",              "ISBN (optional)"],
                 ["price",             "Borrow Price (EGP)"],
+                ["publicationDate",   "Publication Date (YYYY-MM-DD)"],
                 ["availabilityStart", "Available From (YYYY-MM-DD)"],
                 ["availabilityEnd",   "Available Until (YYYY-MM-DD)"],
                 ["coverImageUrl",     "Cover Image URL (optional)"],
@@ -323,7 +320,6 @@ export default function OwnerDashboard({ navigate, onLogout }) {
                     placeholder={k === "coverImageUrl" ? "https://covers.openlibrary.org/b/isbn/..." : ""} />
                 </div>
               ))}
-
               <div>
                 <label>Language</label>
                 <select className="input" value={form.language}
