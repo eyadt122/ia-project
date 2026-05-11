@@ -45,6 +45,9 @@ export default function Home({ navigate, user, onLogout }) {
           {user?.role === "Admin" && (
             <button className="btn btn-outline btn-sm" onClick={() => navigate("admin")}>Admin Panel</button>
           )}
+          {user?.role === "Reader" && (
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate("lists")}>🔖 My Lists</button>
+          )}
           <NotificationBell user={user} />
           {user ? (
             <button className="btn btn-ghost btn-sm" onClick={onLogout}>Sign Out</button>
@@ -120,9 +123,11 @@ function BookCard({ book, onClick }) {
       onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "var(--shadow-lg)"; }}
       onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
       <div style={{ height: 200, overflow: "hidden", background: "var(--bg2)" }}>
-        {book.coverImageUrl && (
+        {book.coverImageUrl ? (
           <img src={book.coverImageUrl} alt={book.title}
             style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>📖</div>
         )}
       </div>
       <div style={{ padding: "14px 14px 16px" }}>
