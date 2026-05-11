@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import API from "../api";
+import NotificationBell from "../components/NotificationBell";
 
-export default function AdminDashboard({ navigate }) {
+export default function AdminDashboard({ navigate, onLogout }) {
   const [activeTab, setActiveTab] = useState("accounts");
   const [accounts, setAccounts]   = useState([]);
   const [posts, setPosts]         = useState([]);
   const [toast, setToast]         = useState(null);
   const [loading, setLoading]     = useState(true);
+  const user = JSON.parse(localStorage.getItem("user") || "null");
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -59,10 +61,14 @@ export default function AdminDashboard({ navigate }) {
   return (
     <div style={{ minHeight: "100vh" }}>
       <nav className="navbar">
-        <div className="navbar-brand">Book<span>Circle</span> <span style={{ fontSize: 12, color: "var(--text2)", fontFamily: "'DM Sans', sans-serif", fontWeight: 400, marginLeft: 6 }}>Admin</span></div>
+        <div className="navbar-brand">
+          Book<span>Circle</span>
+          <span style={{ fontSize: 12, color: "var(--text2)", fontFamily: "'DM Sans', sans-serif", fontWeight: 400, marginLeft: 6 }}>Admin</span>
+        </div>
         <div className="navbar-actions">
+          <NotificationBell user={user} />
           <button className="btn btn-ghost btn-sm" onClick={() => navigate("home")}>View Site</button>
-          <button className="btn btn-outline btn-sm" onClick={() => { localStorage.clear(); navigate("login"); }}>Sign Out</button>
+          <button className="btn btn-outline btn-sm" onClick={onLogout}>Sign Out</button>
         </div>
       </nav>
 
@@ -72,6 +78,7 @@ export default function AdminDashboard({ navigate }) {
           <p className="page-sub">Review pending accounts and book posts</p>
         </div>
 
+        {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 16, marginBottom: 32 }}>
           {stats.map(s => (
             <div key={s.label} className="card" style={{ padding: "18px 20px", display: "flex", gap: 14, alignItems: "center" }}>
@@ -84,25 +91,36 @@ export default function AdminDashboard({ navigate }) {
           ))}
         </div>
 
+        {/* Tabs */}
         <div style={{ display: "flex", gap: 2, marginBottom: 20, background: "var(--bg2)", borderRadius: 8, padding: 4, width: "fit-content" }}>
-          {[{ key: "accounts", label: `👤 Accounts (${accounts.length})` }, { key: "posts", label: `📚 Posts (${posts.length})` }].map(t => (
+          {[
+            { key: "accounts", label: `👤 Accounts (${accounts.length})` },
+            { key: "posts",    label: `📚 Posts (${posts.length})` }
+          ].map(t => (
             <button key={t.key} onClick={() => setActiveTab(t.key)} className="btn" style={{
               borderRadius: 6, fontSize: 13, fontWeight: 600, padding: "8px 18px",
               background: activeTab === t.key ? "var(--surface)" : "transparent",
-              color: activeTab === t.key ? "var(--text)" : "var(--text2)",
-              boxShadow: activeTab === t.key ? "var(--shadow)" : "none",
+              color:      activeTab === t.key ? "var(--text)"    : "var(--text2)",
+              boxShadow:  activeTab === t.key ? "var(--shadow)"  : "none",
             }}>{t.label}</button>
           ))}
         </div>
 
-        {loading ? <div style={{ textAlign: "center", padding: 40, color: "var(--text2)" }}>Loading...</div> : (
+        {loading ? (
+          <div style={{ textAlign: "center", padding: 40, color: "var(--text2)" }}>Loading...</div>
+        ) : (
           <>
+            {/* Accounts Table */}
             {activeTab === "accounts" && (
               <div className="card">
                 <div className="table-wrap">
-                  {accounts.length === 0 ? <Empty icon="✅" text="All accounts reviewed!" /> : (
+                  {accounts.length === 0 ? (
+                    <Empty icon="✅" text="All accounts reviewed!" />
+                  ) : (
                     <table>
-                      <thead><tr><th>Name</th><th>Email</th><th>Applied</th><th style={{ textAlign: "right" }}>Actions</th></tr></thead>
+                      <thead>
+                        <tr><th>Name</th><th>Email</th><th>Applied</th><th style={{ textAlign: "right" }}>Actions</th></tr>
+                      </thead>
                       <tbody>
                         {accounts.map(a => (
                           <tr key={a.id}>
@@ -124,12 +142,17 @@ export default function AdminDashboard({ navigate }) {
               </div>
             )}
 
+            {/* Posts Table */}
             {activeTab === "posts" && (
               <div className="card">
                 <div className="table-wrap">
-                  {posts.length === 0 ? <Empty icon="✅" text="All posts reviewed!" /> : (
+                  {posts.length === 0 ? (
+                    <Empty icon="✅" text="All posts reviewed!" />
+                  ) : (
                     <table>
-                      <thead><tr><th>Title</th><th>Owner</th><th>Genre</th><th>Price</th><th style={{ textAlign: "right" }}>Actions</th></tr></thead>
+                      <thead>
+                        <tr><th>Title</th><th>Owner</th><th>Genre</th><th>Price</th><th style={{ textAlign: "right" }}>Actions</th></tr>
+                      </thead>
                       <tbody>
                         {posts.map(p => (
                           <tr key={p.id}>
@@ -155,8 +178,14 @@ export default function AdminDashboard({ navigate }) {
         )}
       </div>
 
+      {/* Toast */}
       {toast && (
-        <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 999, background: toast.type === "error" ? "var(--red)" : "var(--green)", color: "#fff", padding: "12px 20px", borderRadius: 8, boxShadow: "var(--shadow-lg)", fontSize: 14, fontWeight: 500 }}>
+        <div style={{
+          position: "fixed", bottom: 24, right: 24, zIndex: 999,
+          background: toast.type === "error" ? "var(--red)" : "var(--green)",
+          color: "#fff", padding: "12px 20px", borderRadius: 8,
+          boxShadow: "var(--shadow-lg)", fontSize: 14, fontWeight: 500,
+        }}>
           {toast.msg}
         </div>
       )}
