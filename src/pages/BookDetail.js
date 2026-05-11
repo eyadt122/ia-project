@@ -2,18 +2,24 @@ import { useState, useEffect } from "react";
 import API from "../api";
 
 export default function BookDetail({ book, navigate, user }) {
-  const [comments, setComments]     = useState([]);
-  const [newComment, setNewComment] = useState("");
-  const [replyTo, setReplyTo]       = useState(null);
-  const [replyText, setReplyText]   = useState("");
-  const [borrowed, setBorrowed]     = useState(false);
-  const [likeCount, setLikeCount]   = useState({ likes: 0, dislikes: 0, userVote: null });
+  const [comments, setComments]         = useState([]);
+  const [newComment, setNewComment]     = useState("");
+  const [replyTo, setReplyTo]           = useState(null);
+  const [replyText, setReplyText]       = useState("");
+  const [borrowed, setBorrowed]         = useState(false);
+  const [likeCount, setLikeCount]       = useState({ likes: 0, dislikes: 0, userVote: null });
+  const [lists, setLists]               = useState([]);
+  const [showListMenu, setShowListMenu] = useState(false);
+  const [savedToList, setSavedToList]   = useState(false);
 
   useEffect(() => {
     if (!book) return;
     API.get(`/comments/${book.id}`).then(r => setComments(r.data)).catch(console.error);
     API.get(`/likes/${book.id}`).then(r => setLikeCount(r.data)).catch(console.error);
-  }, [book]);
+    if (user) {
+      API.get("/lists").then(r => setLists(r.data)).catch(console.error);
+    }
+  }, [book, user]);
 
   const sendBorrow = async () => {
     try {
@@ -62,6 +68,17 @@ export default function BookDetail({ book, navigate, user }) {
     }
   };
 
+  const saveToList = async (listId) => {
+    try {
+      await API.post(`/lists/${listId}/books`, { bookPostId: book.id });
+      setSavedToList(true);
+      setShowListMenu(false);
+      setTimeout(() => setSavedToList(false), 3000);
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to save to list");
+    }
+  };
+
   if (!book) return <div style={{ padding: 40, textAlign: "center" }}>No book selected.</div>;
 
   return (
@@ -70,6 +87,9 @@ export default function BookDetail({ book, navigate, user }) {
       <nav className="navbar">
         <div className="navbar-brand">Book<span>Circle</span></div>
         <div className="navbar-actions">
+          {user?.role === "Reader" && (
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate("lists")}>🔖 My Lists</button>
+          )}
           <button className="btn btn-ghost btn-sm" onClick={() => navigate("home")}>← Back to Browse</button>
           {!user && (
             <button className="btn btn-primary btn-sm" onClick={() => navigate("login")}>Sign In</button>
@@ -82,10 +102,12 @@ export default function BookDetail({ book, navigate, user }) {
 
           {/* Cover */}
           <div>
-            <div className="card" style={{ overflow: "hidden", aspectRatio: "2/3", background: "var(--bg2)" }}>
-              {book.coverImageUrl && (
+            <div className="card" style={{ overflow: "hidden", aspectRatio: "2/3", background: "var(--bg2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {book.coverImageUrl ? (
                 <img src={book.coverImageUrl} alt={book.title}
                   style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <span style={{ fontSize: 64 }}>📖</span>
               )}
             </div>
 
@@ -94,16 +116,16 @@ export default function BookDetail({ book, navigate, user }) {
               <button onClick={() => handleLike(true)} className="btn btn-outline"
                 style={{
                   flex: 1, justifyContent: "center",
-                  borderColor: likeCount.userVote === true ? "var(--green)" : "var(--border)",
-                  color: likeCount.userVote === true ? "var(--green)" : "var(--text2)"
+                  borderColor: likeCount.userVote === true  ? "var(--green)" : "var(--border)",
+                  color:       likeCount.userVote === true  ? "var(--green)" : "var(--text2)",
                 }}>
                 👍 {likeCount.likes}
               </button>
               <button onClick={() => handleLike(false)} className="btn btn-outline"
                 style={{
                   flex: 1, justifyContent: "center",
-                  borderColor: likeCount.userVote === false ? "var(--red)" : "var(--border)",
-                  color: likeCount.userVote === false ? "var(--red)" : "var(--text2)"
+                  borderColor: likeCount.userVote === false ? "var(--red)"   : "var(--border)",
+                  color:       likeCount.userVote === false ? "var(--red)"   : "var(--text2)",
                 }}>
                 👎 {likeCount.dislikes}
               </button>
@@ -128,8 +150,8 @@ export default function BookDetail({ book, navigate, user }) {
             {/* Meta */}
             <div className="card" style={{ padding: "16px 20px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 24px", marginBottom: 24 }}>
               {[
-                ["ISBN",         book.isbn          || "—"],
-                ["Language",     book.language      || "—"],
+                ["ISBN",         book.isbn            || "—"],
+                ["Language",     book.language        || "—"],
                 ["Published",    book.publicationDate || "—"],
                 ["Available",    `${book.availabilityStart || "—"} → ${book.availabilityEnd || "—"}`],
                 ["Borrow Price", `${book.borrowPrice} EGP`],
@@ -144,7 +166,7 @@ export default function BookDetail({ book, navigate, user }) {
             {/* Borrow CTA */}
             {book.status === "Available" ? (
               !user ? (
-                <div style={{ background: "#fdf6e3", border: "1px solid #f0c040", borderRadius: "var(--radius)", padding: "14px 18px", fontSize: 14 }}>
+                <div style={{ background: "#fdf6e3", border: "1px solid #f0c040", borderRadius: "var(--radius)", padding: "14px 18px", fontSize: 14, marginBottom: 12 }}>
                   <strong>Want to borrow this book?</strong>
                   <button className="btn btn-primary btn-sm" style={{ marginLeft: 12 }}
                     onClick={() => navigate("login")}>
@@ -152,19 +174,63 @@ export default function BookDetail({ book, navigate, user }) {
                   </button>
                 </div>
               ) : borrowed ? (
-                <div style={{ background: "#e8f5ee", border: "1px solid #a3d9b8", borderRadius: "var(--radius)", padding: "14px 18px", color: "var(--green)", fontSize: 14, fontWeight: 500 }}>
+                <div style={{ background: "#e8f5ee", border: "1px solid #a3d9b8", borderRadius: "var(--radius)", padding: "14px 18px", color: "var(--green)", fontSize: 14, fontWeight: 500, marginBottom: 12 }}>
                   ✅ Borrow request sent! The owner will respond shortly.
                 </div>
               ) : (
-                <button className="btn btn-primary" style={{ fontSize: 15, padding: "12px 28px" }}
+                <button className="btn btn-primary" style={{ fontSize: 15, padding: "12px 28px", marginBottom: 12 }}
                   onClick={sendBorrow}>
                   📩 Send Borrow Request
                 </button>
               )
             ) : (
-              <button className="btn btn-outline" disabled style={{ opacity: 0.5, cursor: "not-allowed" }}>
+              <button className="btn btn-outline" disabled style={{ opacity: 0.5, cursor: "not-allowed", marginBottom: 12 }}>
                 Currently Borrowed
               </button>
+            )}
+
+            {/* Save to Reading List */}
+            {user && (
+              <div style={{ position: "relative", display: "inline-block" }}>
+                <button className="btn btn-outline"
+                  onClick={() => setShowListMenu(!showListMenu)}>
+                  🔖 {savedToList ? "Saved!" : "Save to Reading List"}
+                </button>
+
+                {showListMenu && (
+                  <div style={{
+                    position: "absolute", top: "100%", left: 0, marginTop: 6,
+                    background: "var(--surface)", border: "1px solid var(--border)",
+                    borderRadius: "var(--radius)", boxShadow: "var(--shadow-lg)",
+                    zIndex: 100, minWidth: 220,
+                  }}>
+                    {lists.length === 0 ? (
+                      <div style={{ padding: "12px 16px", fontSize: 13, color: "var(--text2)" }}>
+                        No lists yet.
+                        <button className="btn btn-primary btn-sm" style={{ marginLeft: 8 }}
+                          onClick={() => navigate("lists")}>
+                          Create one
+                        </button>
+                      </div>
+                    ) : (
+                      lists.map(l => (
+                        <div key={l.id}
+                          onClick={() => saveToList(l.id)}
+                          style={{
+                            padding: "10px 16px", cursor: "pointer", fontSize: 14,
+                            borderBottom: "1px solid var(--border)",
+                            display: "flex", justifyContent: "space-between",
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = "var(--bg)"}
+                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                          <span>{l.name}</span>
+                          <span style={{ color: "var(--text2)", fontSize: 12 }}>{l.bookCount} books</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -191,7 +257,8 @@ export default function BookDetail({ book, navigate, user }) {
           </div>
         ) : (
           <div style={{ marginBottom: 28, padding: "12px 16px", background: "var(--bg2)", borderRadius: "var(--radius)", fontSize: 13, color: "var(--text2)" }}>
-            <button onClick={() => navigate("login")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent)", fontWeight: 600 }}>
+            <button onClick={() => navigate("login")}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent)", fontWeight: 600 }}>
               Sign in
             </button> to leave a comment.
           </div>
